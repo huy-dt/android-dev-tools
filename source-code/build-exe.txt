@@ -1,0 +1,6 @@
+ps2exe `
+  package-refactor.ps1 `
+  package-refactor.exe `
+  -title "Android Package Refactor Tool" `
+  -version "1.0.0" `
+  -iconFile package-refactor.ico
