@@ -1,34 +1,28 @@
 #!/usr/bin/env python3
 """
-create-module.py — Tạo nhanh module cho dự án MVVM Android (Hybrid Architecture).
+create-module.py — Tao nhanh module cho du an MVVM Android.
 
-Cấu trúc hỗ trợ:
-    app/                      ← tạo bằng mục [4]
-    core/
-     ├── common/
-     ├── domain/
-     ├── ui/
-     ├── designsystem/
-     └── data/
-          └── {name}/         ← tạo bằng mục [3] "coredata"
-    features/
-     └── {name}/              ← tạo bằng mục [1] "feature"
-          ├── data/           ← tạo kèm theo feature tự động
-          └── src/
+Ten Module format:
+    <n>          ->  :<n>/              top-level app module  (chon Type)
+    core.<n>     ->  :core  (1 module, them package core/<n>/ ben trong)
+    feature.<n>  ->  :features:<n>/    full boilerplate
+
+Config:
+    group  = com.huydt       (dung cho core, feature, lib)
+    App nhap app_package rieng luc tao, vd: com.huydt.app
+
+Type (chi ap dung cho app-level module):
+    App     -> base.android.app  (Compose + Hilt + Navigation + MainActivity)
+    Lib     -> base.android.library
+    LibJar -> kotlin jvm only, build .jar
 
 Usage:
-    python create-module.py                        # interactive menu
-    python create-module.py feature cart
-    python create-module.py core analytics
-    python create-module.py coredata auth
-    python create-module.py app
-    python create-module.py --dry-run feature cart
+    python create-module.py
     python create-module.py --reset-config
 """
 
 import os, sys, re, json, argparse
 
-# ── ANSI colors ───────────────────────────────────────────────────────────────
 RESET  = "\033[0m";  BOLD  = "\033[1m"
 CYAN   = "\033[96m"; GREEN = "\033[92m"
 YELLOW = "\033[93m"; RED   = "\033[91m"
@@ -43,35 +37,35 @@ def gray(s):   return f"{GRAY}{s}{RESET}"
 
 def clear(): os.system("cls" if os.name == "nt" else "clear")
 
-# ── UI helpers ────────────────────────────────────────────────────────────────
+# ── UI ────────────────────────────────────────────────────────────────────────
 def banner(pkg, root):
     print(f"{CYAN}{BOLD}")
-    print("  ╔══════════════════════════════════════════╗")
-    print("  ║       🤖  base_mvvm Module Creator       ║")
-    print("  ╚══════════════════════════════════════════╝")
+    print("  \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557")
+    print("  \u2551       \U0001f916  Android Module Creator         \u2551")
+    print("  \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d")
     print(RESET)
-    print(f"  {gray('Package:')} {cyan(pkg)}")
+    print(f"  {gray('Group  :')} {cyan(pkg)}")
     print(f"  {gray('Root   :')} {cyan(root)}")
     print()
 
 def show_menu(title, options):
     print(f"  {bold(title)}")
-    print(f"  {gray('─' * 52)}")
+    print(f"  {gray('-' * 52)}")
     for key, label in options:
         print(f"  {cyan(bold('[' + key + ']'))}  {label}")
-    print(f"  {gray('─' * 52)}")
+    print(f"  {gray('-' * 52)}")
 
 def prompt(msg, default=None):
     hint = f" {gray('(' + str(default) + ')')}" if default is not None else ""
     try:
-        val = input(f"  {YELLOW}▶ {msg}{hint}: {RESET}").strip()
+        val = input(f"  {YELLOW}> {msg}{hint}: {RESET}").strip()
         return val if val else (str(default) if default is not None else "")
     except (KeyboardInterrupt, EOFError):
-        print(f"\n\n  {gray('Tạm biệt! 👋')}\n")
+        print(f"\n\n  {gray('Tam biet! 👋')}\n")
         sys.exit(0)
 
 def confirm(msg):
-    return prompt(msg + f" {gray('(y/n)')}").lower() in ("y", "yes", "co", "có")
+    return prompt(msg + f" {gray('(y/n)')}",  default="y").lower() in ("y", "yes", "co", "")
 
 # ── Config ────────────────────────────────────────────────────────────────────
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
@@ -97,42 +91,36 @@ def setup_config(force=False):
 
     clear()
     print(f"{CYAN}{BOLD}")
-    print("  ╔══════════════════════════════════════════╗")
-    print("  ║         ⚙️   Cấu hình lần đầu            ║")
-    print("  ╚══════════════════════════════════════════╝")
+    print("  \u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557")
+    print("  \u2551         \u2699\ufe0f   Cau hinh lan dau            \u2551")
+    print("  \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d")
     print(RESET)
 
     up_one = os.path.normpath(os.path.join(SCRIPT_DIR, ".."))
-    if os.path.exists(os.path.join(up_one, "settings.gradle.kts")):
-        guessed_root = up_one
-    elif os.path.exists(os.path.join(os.getcwd(), "settings.gradle.kts")):
-        guessed_root = os.getcwd()
-    else:
-        guessed_root = up_one
+    guessed_root = (up_one if os.path.exists(os.path.join(up_one, "settings.gradle.kts"))
+                    else os.getcwd() if os.path.exists(os.path.join(os.getcwd(), "settings.gradle.kts"))
+                    else up_one)
 
-    print(f"  {bold('📁 Project root')} — thư mục chứa settings.gradle.kts")
-    root_input = prompt("Project root", default=guessed_root)
-    root = os.path.normpath(os.path.expanduser(root_input))
+    print(f"  {bold('Project root')} -- thu muc chua settings.gradle.kts")
+    root = os.path.normpath(os.path.expanduser(prompt("Project root", default=guessed_root)))
 
-    settings_path = os.path.join(root, "settings.gradle.kts")
-    if not os.path.exists(settings_path):
-        print(f"\n  {red('⚠️  Không tìm thấy settings.gradle.kts tại:')} {root}")
-        print(f"  {yellow('Tiếp tục nhưng sẽ không update settings tự động.')}\n")
+    if not os.path.exists(os.path.join(root, "settings.gradle.kts")):
+        print(f"\n  {red('Khong tim thay settings.gradle.kts tai:')} {root}")
+        print(f"  {yellow('Tiep tuc nhung se khong update settings tu dong.')}\n")
 
     print()
-    print(f"  {bold('📦 Base package')} — package gốc (vd: com.example.myapp)")
-    print(f"  {gray('Lưu ý: đây là package dùng cho mọi module, nhập đúng ngay từ đầu.')}")
-    pkg = prompt("Base package")
+    print(f"  {bold('Group')} -- namespace goc dung cho core/feature/lib (vd: com.huydt)")
+    pkg = prompt("Group")
     while not pkg or not re.match(r'^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,}', pkg):
-        print(f"  {red('Package không hợp lệ — ví dụ: com.example.myapp')}")
-        pkg = prompt("Base package")
+        print(f"  {red('Group khong hop le -- vi du: com.huydt')}")
+        pkg = prompt("Group")
 
     cfg = {"base_package": pkg, "project_root": root}
     save_config(cfg)
-    print(f"\n  {green('✅ Đã lưu config')} → {gray(os.path.relpath(CONFIG_FILE))}\n")
+    print(f"\n  {green('Da luu config')} -> {gray(os.path.relpath(CONFIG_FILE))}\n")
     return cfg
 
-# ── File helpers ──────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 def to_pascal(name: str) -> str:
     return "".join(w.capitalize() for w in name.replace("-", "_").split("_"))
 
@@ -150,47 +138,352 @@ def write_file(path: str, content: str, root: str, dry_run: bool = False):
         f.write(content)
     print(f"    {green('+')} {rel}")
 
+def write_file_skip_existing(path: str, content: str, root: str, dry_run: bool = False):
+    """Write file, skip silently if already exists."""
+    rel = os.path.relpath(path, root)
+    if dry_run:
+        exists = os.path.exists(path)
+        print(f"    {yellow('[dry]')} {rel}" + (f" {gray('(skip, da co)')}" if exists else ""))
+        return
+    if os.path.exists(path):
+        print(f"    {yellow('~')} {rel} (skip, da co)")
+        return
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(content)
+    print(f"    {green('+')} {rel}")
+
 def add_to_settings(root: str, line: str, dry_run: bool = False):
     settings = os.path.join(root, "settings.gradle.kts")
     if not os.path.exists(settings):
-        print(f"    {red('✗')} settings.gradle.kts không tìm thấy tại: {settings}")
+        print(f"    {red('x')} settings.gradle.kts khong tim thay")
         return
     with open(settings, "r", encoding="utf-8") as f:
         content = f.read()
     if line in content:
-        print(f"    {yellow('~')} settings đã có: {line}")
+        print(f"    {yellow('~')} settings da co: {line}")
         return
     if dry_run:
-        print(f"    {yellow('[dry]')} settings.gradle.kts ← {line}")
+        print(f"    {yellow('[dry]')} settings.gradle.kts <- {line}")
         return
     with open(settings, "a", encoding="utf-8", newline="\n") as f:
         f.write(f"\n{line}")
-    print(f"    {green('+')} settings.gradle.kts ← {line}")
+    print(f"    {green('+')} settings.gradle.kts <- {line}")
 
-# ── [1] Feature module ────────────────────────────────────────────────────────
-def create_feature(name: str, cfg: dict, dry_run: bool = False):
-    pkg_base      = cfg["base_package"]
-    root          = cfg["project_root"]
-    pascal        = to_pascal(name)
-    pkg           = f"{pkg_base}.feature.{name}"
-    pkg_path      = pkg.replace(".", "/")
-    mod_dir       = os.path.join(root, "features", name)
-    src           = os.path.join(mod_dir, "src", "main", "java", pkg_path)
-    test_src      = os.path.join(mod_dir, "src", "test", "java", pkg_path)
-    data_pkg      = f"{pkg}.data"
-    data_pkg_path = data_pkg.replace(".", "/")
-    data_src      = os.path.join(src, "data")          # thư mục trong cùng module
-    data_test_src = os.path.join(test_src, "data")
+# ── Parse Ten Module ──────────────────────────────────────────────────────────
+def parse_ten_module(raw: str):
+    """
+    Parses Ten Module input. Returns (kind, data) or (None, error_str).
+
+    Formats:
+      app                       -> ("app",     "app")
+      core domain result          -> ("core",    ["domain","result"], None)       shared core
+      core.app domain result    -> ("core",    ["domain","result"], "app")    per-app core
+      feature cart                -> ("feature", ["cart"],            None)       shared feature
+      feature.app home          -> ("feature", ["home"],            "app")    per-app feature
+
+    Returns:
+      ("app",     name_str)
+      ("core",    [sub, ...], app_name_or_None)
+      ("feature", [sub, ...], app_name_or_None)
+    """
+    raw = raw.strip()
+    if not raw:
+        return None, "Ten khong duoc de trong."
+
+    parts = raw.split()
+    first = parts[0].lower()
+
+    # core / core.<appname>  or  feature / feature.<appname>
+    for kind in ("core", "feature"):
+        if first == kind or first.startswith(f"{kind}."):
+            app_ctx = first[len(kind)+1:] if "." in first else None
+            if len(parts) < 2:
+                return None, f"Thieu ten sub. Vi du: {kind} domain | {kind}.app domain"
+            subs = []
+            for p in parts[1:]:
+                n = validate_name(p)
+                if not n:
+                    return None, f"Ten sub '{p}' khong hop le"
+                subs.append(n)
+            return kind, subs, app_ctx
+
+    # plain app-level name
+    if len(parts) == 1:
+        name = validate_name(parts[0])
+        if not name:
+            return None, f"Ten '{parts[0]}' khong hop le -- chi dung chu thuong, so, dau _"
+        return "app", name
+
+    return None, "Dinh dang khong hop le. Vi du: app | core domain | core.app domain | feature cart | feature.app home"
+
+# ── Type menu (app-level only) ────────────────────────────────────────────────
+TYPE_OPTIONS = [
+    ("1", "App     -- base.android.app  (Compose + Hilt + Navigation + MainActivity)"),
+    ("2", "Lib     -- base.android.library"),
+    ("3", "LibJar -- kotlin jvm only, build .jar"),
+]
+TYPE_MAP = {"1": "App", "2": "Lib", "3": "LibJar"}
+
+def pick_type():
+    print()
+    show_menu("Buoc 2 -- Type:", TYPE_OPTIONS)
+    print()
+    while True:
+        ch = prompt("Nhap lua chon", default="1")
+        if ch in TYPE_MAP:
+            return TYPE_MAP[ch]
+        print(f"  {red('Lua chon khong hop le.')}")
+
+# ── CORE generator (single :core module) ─────────────────────────────────────
+# Known sub-names and their preset file structures
+CORE_PRESETS = {
+    "domain": [
+        # (rel_path_from_pkg_dir, content_fn)  content_fn(pkg, pascal) -> str
+        ("model/Entity.kt",      lambda pkg, _: f"package {pkg}.model\n\n// TODO: them domain entities\n"),
+        ("repository/Repository.kt", lambda pkg, p: f"package {pkg}.repository\n\ninterface {p}Repository {{\n    // TODO: suspend fun / Flow\n}}\n"),
+        ("usecase/UseCase.kt",   lambda pkg, _: f"package {pkg}.usecase\n\nabstract class UseCase<in P, out R> {{\n    abstract suspend operator fun invoke(params: P): R\n}}\n\nabstract class FlowUseCase<in P, out R> {{\n    abstract operator fun invoke(params: P): kotlinx.coroutines.flow.Flow<R>\n}}\n"),
+    ],
+    "result": [
+        ("Result.kt", lambda pkg, _: f"""package {pkg}
+
+sealed class Result<out T> {{
+    data class Success<T>(val data: T) : Result<T>()
+    data class Error(val exception: Throwable, val message: String? = null) : Result<Nothing>()
+    data object Loading : Result<Nothing>()
+}}
+
+fun <T> Result<T>.onSuccess(action: (T) -> Unit): Result<T> {{
+    if (this is Result.Success) action(data)
+    return this
+}}
+
+fun <T> Result<T>.onError(action: (Throwable, String?) -> Unit): Result<T> {{
+    if (this is Result.Error) action(exception, message)
+    return this
+}}
+
+fun <T> Result<T>.getOrNull(): T? = if (this is Result.Success) data else null
+"""),
+    ],
+    "usecase": [
+        ("UseCase.kt", lambda pkg, _: f"""package {pkg}
+
+abstract class UseCase<in P, out R> {{
+    abstract suspend operator fun invoke(params: P): R
+}}
+
+abstract class FlowUseCase<in P, out R> {{
+    abstract operator fun invoke(params: P): kotlinx.coroutines.flow.Flow<R>
+}}
+
+object NoParams
+"""),
+    ],
+    "common": [
+        ("extension/FlowExt.kt", lambda pkg, _: f"package {pkg}.extension\n\nimport kotlinx.coroutines.flow.Flow\nimport kotlinx.coroutines.flow.catch\nimport kotlinx.coroutines.flow.map\n\n// Flow extensions\n"),
+        ("extension/ContextExt.kt", lambda pkg, _: f"package {pkg}.extension\n\nimport android.content.Context\n\n// Context extensions\n"),
+        ("util/Logger.kt", lambda pkg, _: f"package {pkg}.util\n\nimport android.util.Log\n\nobject Logger {{\n    private const val TAG = \"AppLogger\"\n    fun d(msg: String) = Log.d(TAG, msg)\n    fun e(msg: String, t: Throwable? = null) = Log.e(TAG, msg, t)\n}}\n"),
+    ],
+    "ui": [
+        ("component/LoadingScreen.kt", lambda pkg, _: f"""package {pkg}.component
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+
+@Composable
+fun LoadingScreen(modifier: Modifier = Modifier) {{
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {{
+        CircularProgressIndicator()
+    }}
+}}
+"""),
+        ("component/ErrorScreen.kt", lambda pkg, _: f"""package {pkg}.component
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun ErrorScreen(
+    message: String,
+    onRetry: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {{
+    Column(
+        modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement   = Arrangement.Center,
+        horizontalAlignment   = Alignment.CenterHorizontally,
+    ) {{
+        Text(message)
+        if (onRetry != null) {{
+            Button(onClick = onRetry) {{ Text("Retry") }}
+        }}
+    }}
+}}
+"""),
+    ],
+    "designsystem": [
+        ("theme/Theme.kt", lambda pkg, _: f"""package {pkg}.theme
+
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+
+@Composable
+fun AppTheme(content: @Composable () -> Unit) {{
+    MaterialTheme(content = content)
+}}
+"""),
+        ("theme/Color.kt", lambda pkg, _: f"package {pkg}.theme\n\nimport androidx.compose.ui.graphics.Color\n\n// TODO: define app colors\nval Purple80 = Color(0xFFD0BCFF)\nval PurpleGrey80 = Color(0xFFCCC2DC)\n"),
+        ("theme/Type.kt", lambda pkg, _: f"package {pkg}.theme\n\nimport androidx.compose.material3.Typography\n\nval AppTypography = Typography()\n"),
+    ],
+}
+
+def gen_core(sub: str, cfg: dict, app_ctx: str = None, dry_run: bool = False):
+    """
+    Them sub-package vao module core.
+    app_ctx=None  -> :core          shared,   pkg = <group>.core.<sub>
+    app_ctx="g1"  -> :core.g1       per-app,  pkg = <group>.g1.core.<sub>
+    """
+    pkg_base  = cfg["base_package"]
+    root      = cfg["project_root"]
+    pascal    = to_pascal(sub)
+
+    if app_ctx:
+        mod_name  = f"core.{app_ctx}"   # Gradle: :core.app
+        dir_name  = f"core-{app_ctx}"   # folder: core-app/
+        core_pkg  = f"{pkg_base}.{app_ctx}.core"
+    else:
+        mod_name  = "core"
+        dir_name  = "core"
+        core_pkg  = f"{pkg_base}.core"
+
+    sub_pkg   = f"{core_pkg}.{sub}"
+    core_dir  = os.path.join(root, dir_name)
+    src_base  = os.path.join(core_dir, "src", "main", "java", core_pkg.replace(".", "/"))
+    sub_dir   = os.path.join(src_base, sub)
+    test_base = os.path.join(core_dir, "src", "test", "java", core_pkg.replace(".", "/"))
+    sub_test  = os.path.join(test_base, sub)
+
+    print(f"\n  {bold('Tao files...')}\n")
+
+    # build.gradle.kts — tao neu chua co
+    write_file_skip_existing(os.path.join(core_dir, "build.gradle.kts"), f"""\
+plugins {{
+    id("base.android.library")
+    // id("base.android.hilt")    // bo comment neu can Hilt
+    // id("base.android.compose") // bo comment neu can Compose
+}}
+
+android {{
+    namespace = "{core_pkg}"
+}}
+
+dependencies {{
+    // Them deps khi can.
+
+    // implementation(libs.coroutines.android)
+    // implementation(libs.lifecycle.runtime.compose)
+    // implementation(libs.compose.material.icons.extended)
+}}
+""", root, dry_run)
+
+    # AndroidManifest — tao neu chua co
+    manifest = os.path.join(core_dir, "src", "main", "AndroidManifest.xml")
+    write_file_skip_existing(manifest, f"""\
+<?xml version="1.0" encoding="utf-8"?>
+<manifest package="{core_pkg}" />
+""", root, dry_run)
+
+    # Preset files for known sub-names
+    presets = CORE_PRESETS.get(sub)
+    if presets:
+        for rel, content_fn in presets:
+            write_file(os.path.join(sub_dir, rel), content_fn(sub_pkg, pascal), root, dry_run)
+    else:
+        # Generic placeholder
+        write_file(os.path.join(sub_dir, f"{pascal}.kt"), f"""\
+package {sub_pkg}
+
+// TODO: them code cho core.{sub}
+""", root, dry_run)
+
+    # Test placeholder
+    write_file_skip_existing(os.path.join(sub_test, f"{pascal}Test.kt"), f"""\
+package {sub_pkg}
+
+import org.junit.Test
+
+class {pascal}Test {{
+
+    @Test
+    fun `placeholder test`() {{
+        // TODO
+    }}
+}}
+""", root, dry_run)
+
+    add_to_settings(root, f'include(":{dir_name}")', dry_run)
+
+    tag       = f"  {yellow('[DRY RUN]')}" if dry_run else f"  {green('Done!')}"
+    impl      = f'implementation(project(":{mod_name}"))'
+    ctx_label = f".{app_ctx}" if app_ctx else " (shared)"
+    print()
+    print(f"{tag} Core{ctx_label}.{sub} {'preview' if dry_run else 'tao xong!'}")
+    print(f"  {gray('Package :')} {sub_pkg}")
+    print(f"  {gray('Depend  :')} {impl}")
+    print()
+
+# ── FEATURE generator ─────────────────────────────────────────────────────────
+def gen_feature(name: str, cfg: dict, app_ctx: str = None, dry_run: bool = False):
+    """
+    app_ctx=None  -> :features:<name>          shared,  pkg = <group>.feature.<name>
+    app_ctx="g1"  -> :features-g1:<name>       per-app, pkg = <group>.g1.feature.<name>
+    """
+    pkg_base  = cfg["base_package"]
+    root      = cfg["project_root"]
+    pascal    = to_pascal(name)
+
+    if app_ctx:
+        feat_mod_root = f"features.{app_ctx}"    # Gradle: :features.app:home
+        feat_dir_root = os.path.join(root, f"features-{app_ctx}")  # folder: features-app/
+        pkg           = f"{pkg_base}.{app_ctx}.feature.{name}"
+        settings_line = f'include(":features-{app_ctx}:{name}")'
+    else:
+        feat_mod_root = "features"
+        feat_dir_root = os.path.join(root, "features")
+        pkg           = f"{pkg_base}.feature.{name}"
+        settings_line = f'include(":features:{name}")'
+
+    data_pkg  = f"{pkg}.data"
+    mod_dir   = os.path.join(feat_dir_root, name)
+    src       = os.path.join(mod_dir, "src", "main", "java", pkg.replace(".", "/"))
+    test_src  = os.path.join(mod_dir, "src", "test", "java", pkg.replace(".", "/"))
+    data_src  = os.path.join(src, "data")
+    data_test = os.path.join(test_src, "data")
 
     if not dry_run and os.path.exists(mod_dir):
-        print(f"\n  {red('Module features:' + name + ' đã tồn tại!')}\n")
+        print(f"\n  {red('Module ' + mod_dir + ' da ton tai!')}\n")
         return
 
-    print(f"\n  {bold('📦 Tạo files...')}\n")
+    print(f"\n  {bold('Tao files...')}\n")
 
     write_file(os.path.join(mod_dir, "build.gradle.kts"), f"""\
 plugins {{
     id("base.android.feature")
+    // id("base.android.hilt")       // bo comment neu can Hilt
+    // id("base.android.compose") // bo comment neu can Compose
 }}
 
 android {{
@@ -198,11 +491,11 @@ android {{
 }}
 
 dependencies {{
-    // Thêm core modules khi cần:
-    // implementation(project(":core:domain"))
-    // implementation(project(":core:ui"))
-    // implementation(project(":core:designsystem"))
-    // implementation(project(":core:data:auth"))
+    // implementation(project(":core"))
+
+    // implementation(libs.coroutines.android)
+    // implementation(libs.lifecycle.runtime.compose)
+    // implementation(libs.compose.material.icons.extended)
 }}
 """, root, dry_run)
 
@@ -251,14 +544,6 @@ class {pascal}ViewModel @Inject constructor(
     fun onBack() {{
         viewModelScope.launch {{ _uiEvent.send({pascal}UiEvent.NavigateBack) }}
     }}
-
-    private fun setLoading(loading: Boolean) {{
-        _uiState.update {{ it.copy(isLoading = loading) }}
-    }}
-
-    private fun setError(message: String?) {{
-        _uiState.update {{ it.copy(error = message) }}
-    }}
 }}
 """, root, dry_run)
 
@@ -285,7 +570,6 @@ import {pkg}.state.{pascal}UiState
 import {pkg}.viewmodel.{pascal}ViewModel
 import kotlinx.coroutines.flow.collectLatest
 
-// Stateful — kết nối ViewModel, xử lý events
 @Composable
 fun {pascal}Route(
     onNavigateBack: () -> Unit,
@@ -310,7 +594,6 @@ fun {pascal}Route(
     )
 }}
 
-// Stateless — dễ preview và test UI
 @Composable
 internal fun {pascal}Screen(
     uiState: {pascal}UiState,
@@ -393,9 +676,8 @@ class {pascal}ViewModelTest {{
 
     @Test
     fun `initial state is correct`() = runTest {{
-        val state = viewModel.uiState.value
-        assert(!state.isLoading)
-        assert(state.error == null)
+        assert(!viewModel.uiState.value.isLoading)
+        assert(viewModel.uiState.value.error == null)
     }}
 
     @Test
@@ -409,7 +691,6 @@ class {pascal}ViewModelTest {{
 }}
 """, root, dry_run)
 
-    # ── data/ folder — thư mục trong cùng src/main, cùng module ──────────────
     write_file(os.path.join(data_src, "repository", f"{pascal}Repository.kt"), f"""\
 package {data_pkg}.repository
 
@@ -451,7 +732,7 @@ abstract class {pascal}DataModule {{
 }}
 """, root, dry_run)
 
-    write_file(os.path.join(data_test_src, "repository", f"{pascal}RepositoryTest.kt"), f"""\
+    write_file(os.path.join(data_test, "repository", f"{pascal}RepositoryTest.kt"), f"""\
 package {data_pkg}.repository
 
 import kotlinx.coroutines.test.runTest
@@ -463,29 +744,26 @@ class {pascal}RepositoryTest {{
     private lateinit var repository: {pascal}RepositoryImpl
 
     @Before
-    fun setUp() {{
-        repository = {pascal}RepositoryImpl()
-    }}
+    fun setUp() {{ repository = {pascal}RepositoryImpl() }}
 
     @Test
-    fun `placeholder test`() = runTest {{
-        // TODO
-    }}
+    fun `placeholder test`() = runTest {{ /* TODO */ }}
 }}
 """, root, dry_run)
 
-    add_to_settings(root, f'include(":features:{name}")', dry_run)
+    add_to_settings(root, settings_line, dry_run)
 
-    impl = f'implementation(project(":features:{name}"))'
+    impl = f'implementation(project("{settings_line[9:-2]}"))'  # extract path from include(":x:y")
     imp1 = f'import {pkg}.navigation.{name}Screen'
     imp2 = f'import {pkg}.navigation.navigateTo{pascal}'
     nav  = f'{name}Screen(onNavigateBack = {{ navController.popBackStack() }})'
+    ctx_label = f".{app_ctx}" if app_ctx else " (shared)"
 
-    tag = f"  {yellow('[DRY RUN]')}" if dry_run else f"  {green('✅')}"
+    tag = f"  {yellow('[DRY RUN]')}" if dry_run else f"  {green('Done!')}"
     print()
-    print(f"{tag} Feature {bold(name)} {'preview' if dry_run else 'tạo xong!'}")
+    print(f"{tag} Feature{ctx_label} {bold(name)} {'preview' if dry_run else 'tao xong!'}")
     print()
-    print(f"  {bold('📋 Bước tiếp theo:')}")
+    print(f"  {bold('Buoc tiep theo:')}")
     print(f"  1. {cyan('app/build.gradle.kts')}: {gray(impl)}")
     print(f"  2. {cyan('AppNavHost.kt')}:")
     print(f"     {gray(imp1)}")
@@ -493,192 +771,24 @@ class {pascal}RepositoryTest {{
     print(f"     {gray(nav)}")
     print()
 
-# ── [2] Core module ───────────────────────────────────────────────────────────
-def create_core(name: str, cfg: dict, dry_run: bool = False):
-    pkg_base = cfg["base_package"]
+# ── APP-LEVEL generators ──────────────────────────────────────────────────────
+def gen_app(name: str, app_pkg: str, cfg: dict, dry_run: bool = False):
+    """
+    name    : module dir name, vd: app
+    app_pkg : full package,    vd: com.huydt.app
+    """
     root     = cfg["project_root"]
-    pascal   = to_pascal(name)
-    pkg      = f"{pkg_base}.core.{name}"
-    pkg_path = pkg.replace(".", "/")
-    mod_dir  = os.path.join(root, "core", name)
-    src      = os.path.join(mod_dir, "src", "main", "java", pkg_path)
-    test_src = os.path.join(mod_dir, "src", "test", "java", pkg_path)
-
-    if not dry_run and os.path.exists(mod_dir):
-        print(f"\n  {red('Module core:' + name + ' đã tồn tại!')}\n")
-        return
-
-    print(f"\n  {bold('📦 Tạo files...')}\n")
-
-    write_file(os.path.join(mod_dir, "build.gradle.kts"), f"""\
-plugins {{
-    id("base.android.library")
-    // id("base.android.hilt")  // bỏ comment nếu module này cần DI
-}}
-
-android {{
-    namespace = "{pkg}"
-}}
-
-dependencies {{
-    // Thêm deps khi cần.
-}}
-""", root, dry_run)
-
-    # src/main — placeholder để tạo thư mục đúng cấu trúc
-    write_file(os.path.join(src, f"{pascal}.kt"), f"""\
-package {pkg}
-
-// TODO: thêm code cho module {name}
-""", root, dry_run)
-
-    write_file(os.path.join(test_src, f"{pascal}Test.kt"), f"""\
-package {pkg}
-
-import org.junit.Test
-
-class {pascal}Test {{
-
-    @Test
-    fun `placeholder test`() {{
-        // TODO
-    }}
-}}
-""", root, dry_run)
-
-    add_to_settings(root, f'include(":core:{name}")', dry_run)
-
-    tag  = f"  {yellow('[DRY RUN]')}" if dry_run else f"  {green('✅')}"
-    impl = f'implementation(project(":core:{name}"))'
-    print()
-    print(f"{tag} Core module {bold(name)} {'preview' if dry_run else 'tạo xong!'}")
-    print(f"  {gray(impl)}")
-    print()
-
-# ── [3] Core data module (shared) ─────────────────────────────────────────────
-def create_core_data(name: str, cfg: dict, dry_run: bool = False):
-    pkg_base = cfg["base_package"]
-    root     = cfg["project_root"]
-    pascal   = to_pascal(name)
-    pkg      = f"{pkg_base}.core.data.{name}"
-    pkg_path = pkg.replace(".", "/")
-    mod_dir  = os.path.join(root, "core", "data", name)
-    src      = os.path.join(mod_dir, "src", "main", "java", pkg_path)
-    test_src = os.path.join(mod_dir, "src", "test", "java", pkg_path)
-
-    if not dry_run and os.path.exists(mod_dir):
-        print(f"\n  {red('Module core:data:' + name + ' đã tồn tại!')}\n")
-        return
-
-    print(f"\n  {bold('📦 Tạo files...')}\n")
-
-    write_file(os.path.join(mod_dir, "build.gradle.kts"), f"""\
-plugins {{
-    id("base.android.data")
-}}
-
-android {{
-    namespace = "{pkg}"
-}}
-
-dependencies {{
-    // Thêm deps khi cần:
-    // implementation(project(":core:domain"))
-    // implementation(project(":core:common"))
-}}
-""", root, dry_run)
-
-    write_file(os.path.join(src, "repository", f"{pascal}Repository.kt"), f"""\
-package {pkg}.repository
-
-interface {pascal}Repository {{
-    // TODO: suspend fun / Flow
-}}
-""", root, dry_run)
-
-    write_file(os.path.join(src, "repository", f"{pascal}RepositoryImpl.kt"), f"""\
-package {pkg}.repository
-
-import javax.inject.Inject
-
-class {pascal}RepositoryImpl @Inject constructor() : {pascal}Repository {{
-    // TODO: implement
-}}
-""", root, dry_run)
-
-    write_file(os.path.join(src, "di", f"{pascal}DataModule.kt"), f"""\
-package {pkg}.di
-
-import {pkg}.repository.{pascal}Repository
-import {pkg}.repository.{pascal}RepositoryImpl
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
-
-@Module
-@InstallIn(SingletonComponent::class)
-abstract class {pascal}DataModule {{
-
-    @Binds
-    @Singleton
-    abstract fun bind{pascal}Repository(
-        impl: {pascal}RepositoryImpl,
-    ): {pascal}Repository
-}}
-""", root, dry_run)
-
-    write_file(os.path.join(test_src, "repository", f"{pascal}RepositoryTest.kt"), f"""\
-package {pkg}.repository
-
-import kotlinx.coroutines.test.runTest
-import org.junit.Before
-import org.junit.Test
-
-class {pascal}RepositoryTest {{
-
-    private lateinit var repository: {pascal}RepositoryImpl
-
-    @Before
-    fun setUp() {{
-        repository = {pascal}RepositoryImpl()
-    }}
-
-    @Test
-    fun `placeholder test`() = runTest {{
-        // TODO
-    }}
-}}
-""", root, dry_run)
-
-    add_to_settings(root, f'include(":core:data:{name}")', dry_run)
-
-    tag  = f"  {yellow('[DRY RUN]')}" if dry_run else f"  {green('✅')}"
-    impl = f'implementation(project(":core:data:{name}"))'
-    print()
-    print(f"{tag} Core data module {bold(name)} {'preview' if dry_run else 'tạo xong!'}")
-    print(f"  {gray(impl)}")
-    print()
-
-# ── [4] App module ────────────────────────────────────────────────────────────
-def create_app(name: str, cfg: dict, dry_run: bool = False):
-    pkg_base = cfg["base_package"]
-    root     = cfg["project_root"]
-    # Package cho app module: lấy 2 phần đầu của base_package + name
-    # vd: base_package=com.xxx.app, name=app1 → com.xxx.app1
-    pkg_parts = pkg_base.split(".")
-    pkg       = ".".join(pkg_parts[:2]) + f".{name}"
+    pkg      = app_pkg
     pkg_path = pkg.replace(".", "/")
     mod_dir  = os.path.join(root, name)
     src      = os.path.join(mod_dir, "src", "main", "java", pkg_path)
     res      = os.path.join(mod_dir, "src", "main", "res")
 
     if not dry_run and os.path.exists(mod_dir):
-        print(f"\n  {red('Module :' + name + ' đã tồn tại!')}\n")
+        print(f"\n  {red('Module :' + name + ' da ton tai!')}\n")
         return
 
-    print(f"\n  {bold('📦 Tạo files...')}\n")
+    print(f"\n  {bold('Tao files...')}\n")
 
     write_file(os.path.join(mod_dir, "build.gradle.kts"), f"""\
 plugins {{
@@ -696,42 +806,18 @@ android {{
 }}
 
 dependencies {{
-    // ── Core modules — thêm khi cần ──────────────────────────────────
-    // implementation(project(":core:common"))
-    // implementation(project(":core:domain"))
-    // implementation(project(":core:ui"))
-    // implementation(project(":core:designsystem"))
+    // Core
+    // implementation(project(":core"))
 
-    // ── Shared data — thêm khi cần ────────────────────────────────────
-    // implementation(project(":core:data:auth"))
-    // implementation(project(":core:data:user"))
-
-    // ── Feature modules — thêm khi cần ───────────────────────────────
+    // Features
     // implementation(project(":features:home"))
 
-    // base.android.app đã tự động thêm:
-    // Compose BOM + UI + Activity, Navigation, Hilt, test libs
+    // implementation(libs.compose.material.icons.extended)
+
+    // base.android.app da tu dong them:
+    // Compose BOM, Navigation, Hilt, test libs
 }}
 """, root, dry_run)
-
-    # keystore.properties mẫu — chỉ tạo nếu chưa có (đặt ở root, KHÔNG commit git)
-    keystore_file = os.path.join(root, "keystore.properties")
-    if not dry_run and not os.path.exists(keystore_file):
-        write_file(keystore_file, """\
-# ⚠️  KHÔNG COMMIT FILE NÀY LÊN GIT — thêm vào .gitignore
-#
-# Hướng dẫn tạo keystore:
-#   keytool -genkey -v -keystore keystore/release.jks -alias my-key -keyalg RSA -keysize 2048 -validity 10000
-#
-RELEASE_STORE_FILE=keystore/release.jks
-RELEASE_STORE_PASSWORD=your_store_password
-RELEASE_KEY_ALIAS=your_key_alias
-RELEASE_KEY_PASSWORD=your_key_password
-""", root, dry_run)
-    elif dry_run:
-        print(f"    {yellow('[dry]')} keystore.properties (root)")
-    else:
-        print(f"    {yellow('~')} keystore.properties đã tồn tại, bỏ qua")
 
     write_file(os.path.join(src, "App.kt"), f"""\
 package {pkg}
@@ -780,10 +866,9 @@ fun AppNavHost(
 ) {{
     NavHost(
         navController    = navController,
-        startDestination = "home", // TODO: thay bằng route thực
+        startDestination = "home",
     ) {{
-        // TODO: thêm destinations ở đây
-        // homeScreen(onNavigateBack = {{ navController.popBackStack() }})
+        // TODO: them destinations
     }}
 }}
 """, root, dry_run)
@@ -797,7 +882,7 @@ fun AppNavHost(
         android:allowBackup="true"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.BaseMvvm">
+        android:theme="@style/Theme.App">
 
         <activity
             android:name=".MainActivity"
@@ -824,9 +909,7 @@ fun AppNavHost(
     write_file(os.path.join(res, "values", "themes.xml"), """\
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.BaseMvvm" parent="android:Theme.DeviceDefault.Light.NoActionBar">
-        <!-- Không cần gì thêm — Compose tự vẽ toàn bộ UI -->
-    </style>
+    <style name="Theme.App" parent="android:Theme.DeviceDefault.Light.NoActionBar" />
 </resources>
 """, root, dry_run)
 
@@ -835,144 +918,84 @@ fun AppNavHost(
 
     add_to_settings(root, f'include(":{name}")', dry_run)
 
-    tag = f"  {yellow('[DRY RUN]')}" if dry_run else f"  {green('✅')}"
+    tag = f"  {yellow('[DRY RUN]')}" if dry_run else f"  {green('Done!')}"
     print()
-    print(f"{tag} Module {bold(name)} {'preview' if dry_run else 'tạo xong!'}")
-    print(f"  {gray('Package:')} {cyan(pkg_base)}")
+    print(f"{tag} Module {bold(name)} [App] {'preview' if dry_run else 'tao xong!'}")
     print()
 
-# ── Interactive menu ──────────────────────────────────────────────────────────
-def run_menu(cfg: dict):
-    clear()
-    banner(cfg["base_package"], cfg["project_root"])
 
-    while True:
-        show_menu("Chọn loại module:", [
-            ("1", "module    — :{name} (MainActivity + NavHost + Application)  vd: app, app1"),
-            ("2", "core      — Library (shared utility, không có Hilt mặc định)"),
-            ("3", "feature   — Screen + ViewModel + State + Navigation + data/"),
-            ("4", "libjar    — Kotlin library thuần, build ra .jar, có Main.kt"),
-            ("5", "coredata  — core/data/{name}: shared Repository (auth, user, settings…)"),
-            ("c", "config    — Đổi package / root dir"),
-            ("0", "exit      — Thoát"),
-        ])
-        print()
-        choice = prompt("Nhập lựa chọn")
-
-        if choice in ("0", "q", "exit"):
-            print(f"\n  {gray('Tạm biệt! 👋')}\n")
-            sys.exit(0)
-
-        if choice == "c":
-            cfg = setup_config(force=True)
-            clear()
-            banner(cfg["base_package"], cfg["project_root"])
-            continue
-
-        # App module — nhập tên (app, app1, app2, …)
-        if choice == "1":
-            print()
-            while True:
-                raw = prompt(f"Tên module {cyan('module')} (vd: app, app1, app2)")
-                if not raw:
-                    print(f"  {red('Tên không được để trống.')}")
-                    continue
-                name = validate_name(raw)
-                if not name:
-                    print(f"  {red('Tên không hợp lệ — chỉ dùng chữ thường, số, dấu _')}")
-                    continue
-                break
-            print()
-            _parts   = cfg["base_package"].split(".")
-            _pkg_prev = ".".join(_parts[:2]) + f".{name}"
-            print(f"  {bold('Preview:')}")
-            print(f"  {gray('Module  :')} :{name}")
-            print(f"  {gray('Package :')} {_pkg_prev}")
-            print(f"  {gray('Files   :')} App.kt · MainActivity.kt · AppNavHost.kt · AndroidManifest.xml")
-            print()
-            if confirm("Xác nhận tạo?"):
-                create_app(name, cfg)
-            else:
-                print(f"\n  {yellow('Đã huỷ.')}\n")
-            input("\nEnter to continue...")
-            clear()
-            banner(cfg["base_package"], cfg["project_root"])
-            continue
-
-        if choice not in ("2", "3", "4", "5"):
-            print(f"  {red('Lựa chọn không hợp lệ.')}\n")
-            continue
-
-        type_map = {"2": "core", "3": "feature", "4": "libjar", "5": "coredata"}
-        module_type = type_map[choice]
-        examples    = {"core": "analytics", "feature": "cart", "libjar": "socket_utils", "coredata": "auth"}
-
-        print()
-        while True:
-            raw = prompt(f"Tên module {cyan(module_type)} (vd: {examples[module_type]})")
-            if not raw:
-                print(f"  {red('Tên không được để trống.')}")
-                continue
-            name = validate_name(raw)
-            if not name:
-                print(f"  {red('Tên không hợp lệ — chỉ dùng chữ thường, số, dấu _')}")
-                continue
-            break
-
-        pascal = to_pascal(name)
-        pkg    = cfg["base_package"]
-
-        print()
-        print(f"  {bold('Preview:')}")
-        if module_type == "feature":
-            print(f"  {gray('Module  :')} :features:{name}")
-            print(f"  {gray('Data    :')} features/{name}/src/main/java/.../data/ (cùng module)")
-            print(f"  {gray('Package :')} {pkg}.feature.{name}")
-            print(f"  {gray('UI      :')} {pascal}UiState · {pascal}ViewModel · {pascal}Route · {pascal}Screen · {pascal}Navigation")
-            print(f"  {gray('Data    :')} {pascal}Repository · {pascal}RepositoryImpl · {pascal}DataModule")
-        elif module_type == "core":
-            print(f"  {gray('Module  :')} :core:{name}")
-            print(f"  {gray('Package :')} {pkg}.core.{name}")
-            print(f"  {gray('Files   :')} {pascal}.kt (placeholder)")
-        elif module_type == "libjar":
-            print(f"  {gray('Module  :')} :libs:{name}")
-            print(f"  {gray('Package :')} {pkg}.lib.{name}")
-            print(f"  {gray('Files   :')} Main.kt · {pascal}.kt (Kotlin JVM only, no Android)")
-        else:
-            print(f"  {gray('Module  :')} :core:data:{name}")
-            print(f"  {gray('Package :')} {pkg}.core.data.{name}")
-            print(f"  {gray('Files   :')} {pascal}Repository · {pascal}RepositoryImpl · {pascal}DataModule")
-        print()
-
-        if not confirm("Xác nhận tạo?"):
-            print(f"\n  {yellow('Đã huỷ.')}\n")
-        else:
-            dispatch(module_type, name, cfg, dry_run=False)
-
-        input("\nEnter to continue...")
-        clear()
-        banner(cfg["base_package"], cfg["project_root"])
-
-# ── [5] Kotlin library module (.jar) ─────────────────────────────────────────
-def create_libjar(name: str, cfg: dict, dry_run: bool = False):
-    """
-    Tạo Kotlin-only library module, build ra .jar (không có Android deps).
-    Dùng cho: shared utils, SDK thuần Kotlin, công cụ CLI, protocol buffers...
-    """
-    pkg_base = cfg["base_package"]
-    root     = cfg["project_root"]
-    pascal   = to_pascal(name)
-    pkg      = f"{pkg_base}.lib.{name}"
-    pkg_path = pkg.replace(".", "/")
-    mod_dir  = os.path.join(root, "libs", name)
-    src      = os.path.join(mod_dir, "src", "main", "kotlin", pkg_path)
-    test_src = os.path.join(mod_dir, "src", "test", "kotlin", pkg_path)
+def gen_lib_app(name: str, cfg: dict, dry_run: bool = False):
+    pkg_base      = cfg["base_package"]
+    root          = cfg["project_root"]
+    pkg           = f"{pkg_base}.{name}"
+    pkg_path      = pkg.replace(".", "/")
+    pascal        = to_pascal(name)
+    mod_dir       = os.path.join(root, name)
+    src           = os.path.join(mod_dir, "src", "main", "java", pkg_path)
+    test_src      = os.path.join(mod_dir, "src", "test", "java", pkg_path)
+    settings_line = f'include(":{name}")'
 
     if not dry_run and os.path.exists(mod_dir):
-        print(f"\n  {red('Module libs:' + name + ' đã tồn tại!')}\n")
+        print(f"\n  {red('Module :' + name + ' da ton tai!')}\n")
         return
 
-    print(f"\n  {bold('📦 Tạo files...')}\n")
+    print(f"\n  {bold('Tao files...')}\n")
+
+    write_file(os.path.join(mod_dir, "build.gradle.kts"), f"""\
+plugins {{
+    id("base.android.library")
+    // id("base.android.hilt")    // bo comment neu can Hilt
+    // id("base.android.compose") // bo comment neu can Compose
+}}
+
+android {{
+    namespace = "{pkg}"
+}}
+
+dependencies {{
+    // Them deps khi can.
+
+    // implementation(libs.compose.material.icons.extended)
+}}
+""", root, dry_run)
+
+    write_file(os.path.join(src, f"{pascal}.kt"),
+               f"package {pkg}\n\n// TODO: them code\n", root, dry_run)
+    write_file(os.path.join(test_src, f"{pascal}Test.kt"), f"""\
+package {pkg}
+
+import org.junit.Test
+
+class {pascal}Test {{
+    @Test fun `placeholder test`() {{ /* TODO */ }}
+}}
+""", root, dry_run)
+
+    add_to_settings(root, settings_line, dry_run)
+
+    tag  = f"  {yellow('[DRY RUN]')}" if dry_run else f"  {green('Done!')}"
+    impl = f'implementation(project(":{name}"))'
+    print()
+    print(f"{tag} Module {bold(name)} [Lib] {'preview' if dry_run else 'tao xong!'}")
+    print(f"  {gray(impl)}")
+    print()
+
+
+def gen_LibJar_app(name: str, cfg: dict, dry_run: bool = False):
+    pkg_base      = cfg["base_package"]
+    root          = cfg["project_root"]
+    pkg           = f"{pkg_base}.lib.{name}"
+    pascal        = to_pascal(name)
+    mod_dir       = os.path.join(root, "libs", name)
+    src           = os.path.join(mod_dir, "src", "main", "kotlin", pkg.replace(".", "/"))
+    test_src      = os.path.join(mod_dir, "src", "test", "kotlin", pkg.replace(".", "/"))
+    settings_line = f'include(":libs:{name}")'
+
+    if not dry_run and os.path.exists(mod_dir):
+        print(f"\n  {red('Module :libs:' + name + ' da ton tai!')}\n")
+        return
+
+    print(f"\n  {bold('Tao files...')}\n")
 
     write_file(os.path.join(mod_dir, "build.gradle.kts"), f"""\
 plugins {{
@@ -994,135 +1017,151 @@ kotlin {{
 }}
 
 dependencies {{
-    // Thuần Kotlin — không có Android deps.
-    // Thêm khi cần, ví dụ:
-    // implementation(libs.kotlinx.serialization.json)
-    // implementation(libs.coroutines.android)
-
     testImplementation(libs.junit)
-    testImplementation(libs.mockk)
-}}
-
-// Build executable jar (optional — bỏ comment nếu cần chạy standalone)
-// tasks.jar {{
-//     manifest {{ attributes["Main-Class"] = "{pkg}.MainKt" }}
-//     from(configurations.runtimeClasspath.get().map {{ if (it.isDirectory) it else zipTree(it) }})
-//     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-// }}
-""", root, dry_run)
-
-    write_file(os.path.join(src, "Main.kt"), f"""\
-package {pkg}
-
-fun main() {{
-    println("Hello from {pascal}!")
 }}
 """, root, dry_run)
 
-    write_file(os.path.join(src, f"{pascal}.kt"), f"""\
-package {pkg}
-
-object {pascal} {{
-    // TODO: thêm logic cho library {name}
-}}
-""", root, dry_run)
-
+    write_file(os.path.join(src, "Main.kt"),
+               f"package {pkg}\n\nfun main() {{\n    println(\"Hello from {pascal}!\")\n}}\n",
+               root, dry_run)
+    write_file(os.path.join(src, f"{pascal}.kt"),
+               f"package {pkg}\n\nobject {pascal} {{\n    // TODO\n}}\n", root, dry_run)
     write_file(os.path.join(test_src, f"{pascal}Test.kt"), f"""\
 package {pkg}
 
 import org.junit.Test
 
 class {pascal}Test {{
-
-    @Test
-    fun `placeholder test`() {{
-        // TODO
-    }}
+    @Test fun `placeholder test`() {{ /* TODO */ }}
 }}
 """, root, dry_run)
 
-    add_to_settings(root, f'include(":libs:{name}")', dry_run)
+    add_to_settings(root, settings_line, dry_run)
 
+    tag  = f"  {yellow('[DRY RUN]')}" if dry_run else f"  {green('Done!')}"
     impl = f'implementation(project(":libs:{name}"))'
-    tag  = f"  {yellow('[DRY RUN]')}" if dry_run else f"  {green('✅')}"
     print()
-    print(f"{tag} Lib jar {bold(name)} {'preview' if dry_run else 'tạo xong!'}")
+    print(f"{tag} Module {bold(name)} [LibJar] {'preview' if dry_run else 'tao xong!'}")
     print(f"  {gray(impl)}")
     print()
 
-# ── Dispatch ──────────────────────────────────────────────────────────────────
-def dispatch(module_type: str, name, cfg: dict, dry_run: bool):
-    if module_type == "feature":
-        create_feature(name, cfg, dry_run)
-    elif module_type == "core":
-        create_core(name, cfg, dry_run)
-    elif module_type == "coredata":
-        create_core_data(name, cfg, dry_run)
-    elif module_type == "module":
-        create_app(name, cfg, dry_run)
-    elif module_type == "libjar":
-        create_libjar(name, cfg, dry_run)
-    else:
-        print(red(f"Loại không hợp lệ: '{module_type}'"))
-        sys.exit(1)
+# ── Menu ──────────────────────────────────────────────────────────────────────
+def run_menu(cfg: dict):
+    clear()
+    banner(cfg["base_package"], cfg["project_root"])
+
+    while True:
+        show_menu("Menu chinh:", [
+            ("1", "Tao module"),
+            ("2", "Config    -- doi package / root dir"),
+            ("3", "Exit"),
+        ])
+        print()
+        choice = prompt("Nhap lua chon", default="1")
+
+        if choice in ("3", "0", "q", "exit"):
+            print(f"\n  {gray('Tam biet! 👋')}\n")
+            sys.exit(0)
+
+        if choice == "2":
+            cfg = setup_config(force=True)
+            clear()
+            banner(cfg["base_package"], cfg["project_root"])
+            continue
+
+        if choice != "1":
+            print(f"  {red('Lua chon khong hop le.')}\n")
+            continue
+
+        # ── Tao module ───────────────────────────────────────────────────────
+        clear()
+        banner(cfg["base_package"], cfg["project_root"])
+
+        print(f"  {green('App module:')}")
+        print(f"  {gray('  app, xxx [App, Lib, Jar]     -> :app, :xxx')}")
+        print(f"  {green('Shared core/feature:')}")
+        print(f"  {gray('  core domain result           -> :core (shared)')}")
+        print(f"  {gray('  feature cart                 -> :features:cart (shared)')}")
+        print(f"  {green('Per-app core/feature:')}")
+        print(f"  {gray('  core.app domain result       -> :core-app')}")
+        print(f"  {gray('  feature.app home             -> :features-app:home')}")
+        print()
+
+        while True:
+            raw = prompt("Ten Module")
+            parsed = parse_ten_module(raw)
+            if parsed[0] is None:
+                print(f"  {red(parsed[1])}")
+                continue
+            break
+
+        prefix   = parsed[0]
+        app_ctx  = None
+
+        if prefix == "core":
+            _, subs, app_ctx = parsed
+        elif prefix == "feature":
+            _, subs, app_ctx = parsed
+            module_type = None
+        else:
+            name        = parsed[1]
+            module_type = pick_type()
+
+        pkg_base = cfg["base_package"]
+
+        # Preview
+        print()
+        print(f"  {bold('Preview:')}")
+        if prefix == "feature":
+            mod_label = f"features.{app_ctx}" if app_ctx else "features"
+            dir_label = f"features-{app_ctx}" if app_ctx else "features"
+            ctx_label = f".{app_ctx}" if app_ctx else ""
+            for s in subs:
+                print(f"  {gray('Module  :')} :{mod_label}:{s}  {gray('(folder: ' + dir_label + '/' + s + ')')}")
+                print(f"  {gray('Package :')} {pkg_base}{ctx_label}.feature.{s}")
+                print(f"  {gray('Files   :')} Screen + ViewModel + State + Navigation + data/")
+        elif prefix == "core":
+            mod_name  = f"core.{app_ctx}" if app_ctx else "core"
+            dir_name  = f"core-{app_ctx}" if app_ctx else "core"
+            ctx_label = f".{app_ctx}" if app_ctx else ""
+            print(f"  {gray('Module  :')} :{mod_name}  {gray('(folder: ' + dir_name + ')')}  (them {len(subs)} sub-package)")
+            for s in subs:
+                files = [f for f, _ in CORE_PRESETS[s]] if s in CORE_PRESETS else [f"{to_pascal(s)}.kt"]
+                print(f"  {gray('  ' + s + ' :')} {pkg_base}{ctx_label}.core.{s}  [{', '.join(files)}]")
+        else:
+            print(f"  {gray('Module  :')} :{name}")
+            print(f"  {gray('Type    :')} {module_type}")
+            if module_type == "App":
+                print(f"  {gray('Package :')} {pkg_base}.{name}  {gray('(co the doi)')}")
+            else:
+                print(f"  {gray('Package :')} {pkg_base}.{name}")
+        print()
+
+        if prefix == "core":
+            for s in subs:
+                gen_core(s, cfg, app_ctx=app_ctx)
+        elif prefix == "feature":
+            for s in subs:
+                gen_feature(s, cfg, app_ctx=app_ctx)
+        elif module_type == "App":
+            gen_app(name, f"{pkg_base}.{name}", cfg)
+        elif module_type == "Lib":
+            gen_lib_app(name, cfg)
+        else:
+            gen_LibJar_app(name, cfg)
+
+        input(f"\n  {GRAY}Enter to continue...{RESET}")
+        clear()
+        banner(cfg["base_package"], cfg["project_root"])
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 def main():
-    parser = argparse.ArgumentParser(
-        prog="create-module",
-        description="Tạo nhanh Android MVVM module.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python create-module.py
-  python create-module.py feature cart
-  python create-module.py core analytics
-  python create-module.py coredata auth
-  python create-module.py app
-  python create-module.py --dry-run feature cart
-  python create-module.py --reset-config
-""",
-    )
-    parser.add_argument("module_type", nargs="?",
-                        choices=["module", "core", "feature", "libjar", "coredata"],
-                        help="Loại module")
-    parser.add_argument("name", nargs="?",
-                        help="Tên module (snake_case) — không dùng cho app")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Preview danh sách file, không ghi thực")
+    parser = argparse.ArgumentParser(prog="create-module",
+                                     description="Tao nhanh Android MVVM module.")
     parser.add_argument("--reset-config", action="store_true",
-                        help="Xoá config cũ, chạy lại setup wizard")
-
+                        help="Xoa config cu, chay lai setup wizard")
     args = parser.parse_args()
     cfg  = setup_config(force=args.reset_config)
-
-    if args.module_type:
-        if args.module_type == "module":
-            if not args.name:
-                print(red("Thiếu tên module cho loại 'module'."))
-                sys.exit(1)
-            name = validate_name(args.name)
-            if not name:
-                print(red(f"Tên không hợp lệ: '{args.name}'"))
-                sys.exit(1)
-            create_app(name, cfg, dry_run=args.dry_run)
-            return
-        if not args.name:
-            print(red(f"Thiếu tên module cho loại '{args.module_type}'."))
-            parser.print_help()
-            sys.exit(1)
-        name = validate_name(args.name)
-        if not name:
-            print(red(f"Tên không hợp lệ: '{args.name}'"))
-            sys.exit(1)
-        dispatch(args.module_type, name, cfg, dry_run=args.dry_run)
-        return
-
-    if args.dry_run:
-        print(red("--dry-run yêu cầu cung cấp module_type."))
-        parser.print_help()
-        sys.exit(1)
-
     run_menu(cfg)
 
 if __name__ == "__main__":
